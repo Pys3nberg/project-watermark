@@ -29,20 +29,43 @@ def watermark(im, mark, opacity=1):
     layer.paste(mark,(int((im.size[0] - w)/2),int((im.size[1]-h)/2)))
     return Image.composite(layer, im, layer)
 
-def gen_watermark(im):
+def gen_watermark(im, inText):
 
+    # Initial Font size
+    fntSize = 12
+    # Create a new layer the size of the input image, in RGBA mode and set all components to zero
     layer = Image.new('RGBA', im.size, (0,0,0,0))
+    # Using the laye create a ImageDraw object
     draw = ImageDraw.Draw(layer)
-    fnt = ImageFont.truetype('arial.ttf', 50)
-    draw.text((0,0), "Sample text",font=fnt,fill=(225,225,225,128))
-    #layer.show()
+    # Create an imageFont object with the initial font size
+    fnt = ImageFont.truetype('arial.ttf', fntSize)
+
+    # in this loop we get the text size in pixels using the current font object, the widths of the text and the image
+    # are compared, if the text fits inside the image, increase the font size until the text does not fit. At that
+    # point set the font size one step down.
+    while True:
+        tSize = draw.textsize(inText, fnt)
+        if tSize[0] < im.size[0]:
+            fntSize += 10
+            fnt = ImageFont.truetype('arial.ttf', fntSize)
+        else:
+            fnt = ImageFont.truetype('arial.ttf', fntSize-10)
+            tSize = draw.textsize(inText, fnt)
+            break
+
+    # using the image and text size, calculate the co-ords of top left point of the text rectangle, such that the text
+    # will appear in the centre of the layer
+    pos = ((im.size[0] - tSize[0])/2, (im.size[1] - tSize[1])/2)
+    # Actually draw the text on the layer in white with 0.5 Alpha
+    draw.text(pos, inText,font=fnt,fill=(225,225,225,128))
+    # return a composite image, a combination of the the input image and the new layer.
     return Image.alpha_composite(im.convert('RGBA'), layer)
 
 def main():
 
     im = Image.open('Jellyfish.jpg')
     mark = Image.open(os.path.join('Project Watermark spec', 'Watermark Eren Ramadan.jpg'))
-    final = gen_watermark(im)
+    final = gen_watermark(im, 'Eren Ramandan')
     #final = watermark(im, mark, 0.4)
 
     final.show()
