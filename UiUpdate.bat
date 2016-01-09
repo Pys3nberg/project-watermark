@@ -1,0 +1,1 @@
+pyuic BaseGUI.ui -o BaseGUI.py
