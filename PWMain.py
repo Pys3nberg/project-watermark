@@ -8,23 +8,39 @@ import sys, os
 class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
+
         QtGui.QMainWindow.__init__(self)
         self.setupUi(self)
+
         QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('CleanLooks'))
+
         self.addImagesButton.clicked.connect(self.addItemsToList)
         self.removeImagesButton.clicked.connect(self.removeItemsFromList)
-        self.inputFileList.itemClicked.connect(self.updatePicture2)
+        self.inputFileList.itemClicked.connect(self.updatePicture)
+        self.inputFileList.currentItemChanged.connect(self.updatePicture)
+        self.multiCheckBox.toggled.connect(self.multiCheckBoxChecked)
+
+        self.destinationDirLineEdit.setText(os.path.dirname(os.path.realpath(__file__)))
+        self.destinationDirLineEdit.setToolTip(os.path.dirname(os.path.realpath(__file__)))
+        self.destinationDirSelectButton.clicked.connect(self.changeDestinationDir)
+
         self.setupGraphics()
         self.show()
+
+    def setupGraphics(self):
+
+        self.graphicsScene = QtGui.QGraphicsScene()
+        self.graphicsView.setScene(self.graphicsScene)
+        self.graphicsScene.clear()
 
     def addItemsToList(self):
 
         fileNames = QtGui.QFileDialog.getOpenFileNamesAndFilter(filter="Images (*.png *.jpg *.bmp *.tiff)")
         iconPath = None
 
-        for item in fileNames[0]:
+        for file in fileNames[0]:
 
-            name, exten = os.path.splitext(os.path.basename(item))
+            name, exten = os.path.splitext(os.path.basename(file))
             if exten == '.jpg':
                 iconPath = os.path.join('Images', 'jpgs.png')
             elif exten == '.png':
@@ -34,55 +50,61 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
             else:
                 iconPath = os.path.join('Images', 'tiff.png')
 
-            item = QtGui.QListWidgetItem(item)
-            item.setIcon(QtGui.QIcon(iconPath))
-            self.inputFileList.addItem(item)
+            itemIn = QtGui.QListWidgetItem(name+exten)
+            itemIn.setToolTip(file)
+            itemIn.setIcon(QtGui.QIcon(iconPath))
+            self.inputFileList.addItem(itemIn)
+
+            #needs work here to add details of the file in the name
+            itemOut = QtGui.QListWidgetItem(name+'.pdf')
+            itemOut.setToolTip(os.path.join(self.destinationDirLineEdit.text(), name + '.pdf'))
+            itemOut.setIcon(QtGui.QIcon(os.path.join('Images', 'pdfs.png')))
+            self.outputFileList.addItem(itemOut)
 
     def removeItemsFromList(self):
 
         for item in self.inputFileList.selectedItems():
-            self.inputFileList.takeItem(self.inputFileList.row(item))
-
-    def setupGraphics(self):
-        self.graphicsScene = QtGui.QGraphicsScene()
-        self.graphicsView.setScene(self.graphicsScene)
-
-        self.graphicsScene.clear()
-        pix = QtGui.QPixmap('Penguins.jpg')
-        imSize = pix.size()
-        pixMap = QtGui.QGraphicsPixmapItem(pix)
-        self.graphicsScene.addItem(pixMap)
-        self.graphicsView.fitInView(QtCore.QRectF(0,0,imSize.width(), imSize.width()), QtCore.Qt.KeepAspectRatio)
-        self.graphicsScene.update()
+            row = self.inputFileList.row(item)
+            self.inputFileList.takeItem(row)
+            self.outputFileList.takeItem(row)
 
     def updatePicture(self, item):
 
-        self.graphicsScene.clear()
-        pix = QtGui.QPixmap(item.text())
-        imSize = pix.size()
-        pixMap = QtGui.QGraphicsPixmapItem(pix)
-        self.graphicsScene.addItem(pixMap)
-        self.graphicsView.fitInView(QtCore.QRectF(0,0,imSize.width(), imSize.width()), QtCore.Qt.KeepAspectRatio)
+        if item:
+            self.graphicsScene.clear()
+            im = Image.open(item.toolTip())
+            im = wm.gen_watermark(im, 'Done it')
+            qtim = ImageQt.ImageQt(im)
+            qtim2 = qtim.copy()
+            pix = QtGui.QPixmap.fromImage(qtim2)
+            self.graphicsScene.addPixmap(pix)
+            self.graphicsView.fitInView(QtCore.QRectF(0,0,im.size[0], im.size[1]), QtCore.Qt.KeepAspectRatio)
+            self.graphicsScene.update()
+        else:
+            self.graphicsScene.clear()
 
-        font = QtGui.QFont()
-        font.setFamily('Arial')
-        font.setPointSize(50)
+    def multiCheckBoxChecked(self, state):
 
-        self.graphicsScene.addText('Fuck you cunt', font)
-        self.graphicsScene.update()
+        selectionMode = None
 
-    def updatePicture2(self, item):
+        if state:
+            selectionMode = QtGui.QAbstractItemView.MultiSelection
+        else:
+            selectionMode = QtGui.QAbstractItemView.SingleSelection
 
-        self.graphicsScene.clear()
-        im = Image.open(item.text())
-        im = wm.gen_watermark(im, 'DOne it you fuckin cuntsssss')
-        qtim = ImageQt.ImageQt(im)
-        qtim2 = qtim.copy()
-        pix = QtGui.QPixmap.fromImage(qtim2)
-        self.graphicsScene.addPixmap(pix)
-        self.graphicsView.fitInView(QtCore.QRectF(0,0,im.size[0], im.size[1]), QtCore.Qt.KeepAspectRatio)
-        self.graphicsScene.update()
+        self.inputFileList.setSelectionMode(selectionMode)
 
+    def changeDestinationDir(self):
+
+        newDir = str(QtGui.QFileDialog.getExistingDirectory(
+                caption='Select a new output directory'))
+
+        if newDir:
+            self.destinationDirLineEdit.setText(newDir)
+            self.destinationDirLineEdit.setToolTip(newDir)
+
+    def closeEvent(self, *args, **kwargs):
+        exit()
 
 
 if __name__ == '__main__':
