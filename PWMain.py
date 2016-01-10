@@ -68,14 +68,14 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         font.setFamily('Arial')
         font.setPointSize(50)
 
-        self.graphicsScene.addText('Fuck you cunt', font)
+        self.graphicsScene.addText('sample text', font)
         self.graphicsScene.update()
 
     def updatePicture2(self, item):
 
         self.graphicsScene.clear()
         im = Image.open(item.text())
-        im = wm.gen_watermark(im, 'DOne it you fuckin cuntsssss')
+        im = wm.gen_watermark(im, 'Done it')
         qtim = ImageQt.ImageQt(im)
         qtim2 = qtim.copy()
         pix = QtGui.QPixmap.fromImage(qtim2)
