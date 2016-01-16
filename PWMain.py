@@ -20,6 +20,20 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         self.inputFileList.currentItemChanged.connect(self.updatePicture)
         self.multiCheckBox.toggled.connect(self.multiCheckBoxChecked)
 
+        # Connect all the editing controls to the updatePicture method
+        self.topLineEdit.editingFinished.connect(self.updatePicture)
+        self.centLineEdit.editingFinished.connect(self.updatePicture)
+        self.botLineEdit.editingFinished.connect(self.updatePicture)
+        self.topFitToCheckBox.stateChanged.connect(self.updatePicture)
+        self.centFitToCheckBox.stateChanged.connect(self.updatePicture)
+        self.botFitToCheckBox.stateChanged.connect(self.updatePicture)
+        self.topOpacitySpinBox.valueChanged.connect(self.updatePicture)
+        self.centOpacitySpinBox.valueChanged.connect(self.updatePicture)
+        self.botOpacitySpinBox.valueChanged.connect(self.updatePicture)
+        self.exportButton.clicked.connect(self.exportImages)
+
+
+
         self.destinationDirLineEdit.setText(os.path.dirname(os.path.realpath(__file__)))
         self.destinationDirLineEdit.setToolTip(os.path.dirname(os.path.realpath(__file__)))
         self.destinationDirSelectButton.clicked.connect(self.changeDestinationDir)
@@ -68,12 +82,32 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
             self.inputFileList.takeItem(row)
             self.outputFileList.takeItem(row)
 
-    def updatePicture(self, item):
+    def updatePicture(self):
 
-        if item:
+        if self.inputFileList.currentRow()>=0:
             self.graphicsScene.clear()
-            im = Image.open(item.toolTip())
-            im = wm.gen_watermark(im, 'Done it')
+            im = Image.open(self.inputFileList.item(self.inputFileList.currentRow()).toolTip())
+            #im = wm.gen_watermark(im, 'Done it')
+
+            if self.topLineEdit.text():
+                if self.topFitToCheckBox.isChecked():
+                    fntSize = 0
+                else:
+                    fntSize = 50
+                topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
+            else:
+                topText=None
+
+            if self.centLineEdit.text():
+                if self.centFitToCheckBox.isChecked():
+                    fntSize = 0
+                else:
+                    fntSize = 50
+                centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
+            else:
+                centText=None
+
+            im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
             qtim = ImageQt.ImageQt(im)
             qtim2 = qtim.copy()
             pix = QtGui.QPixmap.fromImage(qtim2)
@@ -102,6 +136,43 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         if newDir:
             self.destinationDirLineEdit.setText(newDir)
             self.destinationDirLineEdit.setToolTip(newDir)
+            for i in range(self.outputFileList.count()):
+                self.outputFileList.item(i).setToolTip(os.path.join(newDir, self.outputFileList.item(i).text()))
+
+    def selectFont(self):
+
+        font = QtGui.QFontDialog.getFont()
+        font = font[0]
+        print(font.style())
+
+    def exportImages(self):
+
+        for i in range(self.inputFileList.count()):
+            im = Image.open(self.inputFileList.item(i).toolTip())
+            #im = wm.gen_watermark(im, 'Done it')
+
+            if self.topLineEdit.text():
+                if self.topFitToCheckBox.isChecked():
+                    fntSize = 0
+                else:
+                    fntSize = 50
+                topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
+            else:
+                topText=None
+
+            if self.centLineEdit.text():
+                if self.centFitToCheckBox.isChecked():
+                    fntSize = 0
+                else:
+                    fntSize = 50
+                centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
+            else:
+                centText=None
+
+            im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
+
+            wm.saveImage(im=im, savePath=self.outputFileList.item(i).toolTip())
+
 
     def closeEvent(self, *args, **kwargs):
         exit()
