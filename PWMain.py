@@ -2,6 +2,7 @@ from PyQt4 import QtGui, QtCore
 from BaseGUI import Ui_MainWindow
 from PIL import Image, ImageQt
 import Watermarking as wm
+import xlhelper as xl
 import sys, os
 
 
@@ -9,10 +10,17 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
 
-        QtGui.QMainWindow.__init__(self)
-        self.setupUi(self)
+        # ---SETUP GUI---
 
+        # Inherit from the form class "QMainWindow"
+        QtGui.QMainWindow.__init__(self)
+        # Setup the GUI using the base class. ***BaseGUI must be updated using UiUpdate.bat Whenever any changes are
+        # made in PyQt Designer***
+        self.setupUi(self)
+        # Set the style of the GUI
         QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('CleanLooks'))
+
+        # ---CONNECT/SETUP IMAGE LOADING CONTROLS---
 
         self.addImagesButton.clicked.connect(self.addItemsToList)
         self.removeImagesButton.clicked.connect(self.removeItemsFromList)
@@ -20,7 +28,8 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         self.inputFileList.currentItemChanged.connect(self.updatePicture)
         self.multiCheckBox.toggled.connect(self.multiCheckBoxChecked)
 
-        # Connect all the editing controls to the updatePicture method
+        # ---CONNECT/SETUP WATERMARK EDITING CONTROLS---
+
         self.topLineEdit.editingFinished.connect(self.updatePicture)
         self.centLineEdit.editingFinished.connect(self.updatePicture)
         self.botLineEdit.editingFinished.connect(self.updatePicture)
@@ -31,15 +40,19 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         self.centOpacitySpinBox.valueChanged.connect(self.updatePicture)
         self.botOpacitySpinBox.valueChanged.connect(self.updatePicture)
         self.exportButton.clicked.connect(self.exportImages)
+        self.progressBar.setValue(0)
 
+        # ---CONNECT/SETUP IMAGE OUTPUT CONTROLS---
 
-
-        self.destinationDirLineEdit.setText(os.path.dirname(os.path.realpath(__file__)))
-        self.destinationDirLineEdit.setToolTip(os.path.dirname(os.path.realpath(__file__)))
+        self.destinationDirLineEdit.setText(os.path.dirname(os.path.realpath(os.getcwd())))
+        self.destinationDirLineEdit.setToolTip(os.path.dirname(os.path.realpath(os.getcwd())))
         self.destinationDirSelectButton.clicked.connect(self.changeDestinationDir)
+
+        # ---SETUP GRAPHICSVIEW AND SHOW GUI---
 
         self.setupGraphics()
         self.show()
+
 
     def setupGraphics(self):
 
@@ -147,31 +160,57 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
 
     def exportImages(self):
 
-        for i in range(self.inputFileList.count()):
-            im = Image.open(self.inputFileList.item(i).toolTip())
-            #im = wm.gen_watermark(im, 'Done it')
+        try:
+            wb = xl.workbook(os.path.join(os.getcwd(), 'Log.xlsx'))
+            self.progressBar.setMaximum(self.inputFileList.count())
 
-            if self.topLineEdit.text():
-                if self.topFitToCheckBox.isChecked():
-                    fntSize = 0
+            for i in range(self.inputFileList.count()):
+                im = Image.open(self.inputFileList.item(i).toolTip())
+                #im = wm.gen_watermark(im, 'Done it')
+
+                if self.topLineEdit.text():
+                    if self.topFitToCheckBox.isChecked():
+                        fntSize = 0
+                    else:
+                        fntSize = 50
+                    topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
                 else:
-                    fntSize = 50
-                topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
-            else:
-                topText=None
+                    topText=None
 
-            if self.centLineEdit.text():
-                if self.centFitToCheckBox.isChecked():
-                    fntSize = 0
+                if self.centLineEdit.text():
+                    if self.centFitToCheckBox.isChecked():
+                        fntSize = 0
+                    else:
+                        fntSize = 50
+                    centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
                 else:
-                    fntSize = 50
-                centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
-            else:
-                centText=None
+                    centText=None
 
-            im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
+                im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
+                wm.saveImage(im=im, savePath=self.outputFileList.item(i).toolTip())
+                xl.append_row(wb,[1,2,3,4,5,6,7,8,9,0])
+                self.progressBar.setValue(i+1)
 
-            wm.saveImage(im=im, savePath=self.outputFileList.item(i).toolTip())
+            wb.save(os.path.join(os.getcwd(), 'Log.xlsx'))
+            self.showMessage('Export of images successful!', 'All images were succesfully exported to the desination folder!',
+                             QtGui.QMessageBox.Information)
+            self.progressBar.setValue(0)
+
+        except Exception as e:
+
+            self.showMessage('Error',e,QtGui.QMessageBox.Information)
+
+
+    def showMessage(self, title, text, icon):
+
+        msg = QtGui.QMessageBox()
+        msg.setIcon(icon)
+        msg.setText(text)
+        msg.setWindowTitle(title)
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+
+        result = msg.exec_()
+        print(result)
 
 
     def closeEvent(self, *args, **kwargs):
