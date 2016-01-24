@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>Images/water.ico</normaloff>Images/water.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QGroupBox" name="inputGroupBox">
     <property name="geometry">
@@ -385,9 +389,6 @@
       </item>
      </layout>
     </widget>
-    <zorder>outputFileList</zorder>
-    <zorder>outputFileList</zorder>
-    <zorder>verticalLayoutWidget_3</zorder>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
