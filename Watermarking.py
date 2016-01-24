@@ -1,7 +1,7 @@
-from PIL import Image, ImageEnhance, ImageDraw, ImageFont
+from PIL import Image, ImageEnhance, ImageDraw, ImageFont, PdfImagePlugin
 from numpy import polyfit, poly1d
 import os, datetime
-
+# PdfImagePlugin only imported so that compile applications can save to pdf
 
 def reduce_opacity(im, opacity):
 
@@ -78,7 +78,6 @@ def watermark_full_beans(im, fileName, printNo = '000', top=None, cent=None, bot
     if cent:
         if cent[2] == 0:
             fntSize, tSize = get_fntSize_poly(im, draw, cent[0], cent[1])
-            print(fntSize)
             fnt = ImageFont.truetype(cent[1]+'.ttf', fntSize)
         else:
             fnt = ImageFont.truetype(cent[1]+'.ttf', cent[2])
