@@ -1,20 +1,25 @@
 import openpyxl as xl
 from openpyxl.cell import get_column_letter
 
+
 def workbook(path=None):
 
     if path:
         try:
             return xl.load_workbook(path)
         except:
-            return xl.Workbook()
+            wb = xl.Workbook()
+            append_row(wb, ['Print No.', 'File Name', 'Reason', 'Requested By',
+                            'Recipicant', 'Watermarked by', 'Printed By', 'Paper size', 'Date Sent', 'Location On Server'])
+            return wb
     else:
-
-        return xl.Workbook()
+        wb = xl.Workbook()
+        append_row(wb, ['Print No.', 'File Name', 'Reason', 'Requested By',
+                        'Recipicant', 'Watermarked by', 'Printed By', 'Paper size', 'Date Sent', 'Location On Server'])
+        return wb
 
 
 def rows_columns(wb):
-
 
     sheet = wb.active
 
