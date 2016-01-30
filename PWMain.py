@@ -1,5 +1,6 @@
 from PyQt4 import QtGui, QtCore
 from BaseGUI import Ui_MainWindow
+from additionalInfo import additional_info
 from PIL import Image, ImageQt
 import Watermarking as wm
 import xlhelper as xl
@@ -19,6 +20,13 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         # Set the style of the GUI
         QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('CleanLooks'))
+        # set the fixed size to basically disable resizing
+        self.setFixedSize(self.size())
+        self.statusBar()
+        self.setStatusTip('Ready...')
+        self.logFile = os.path.join(os.getcwd(), 'Log.xlsx')
+        self.actionSelect_Log_File.triggered.connect(self.changeLogFile)
+        self.actionExit.triggered.connect(sys.exit)
 
         # ---CONNECT/SETUP IMAGE LOADING CONTROLS---
 
@@ -161,45 +169,61 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
     def exportImages(self):
 
         try:
-            wb = xl.workbook(os.path.join(os.getcwd(), 'Log.xlsx'))
-            self.progressBar.setMaximum(self.inputFileList.count())
+            dlg = additional_info()
 
-            for i in range(self.inputFileList.count()):
-                im = Image.open(self.inputFileList.item(i).toolTip())
-                #im = wm.gen_watermark(im, 'Done it')
+            if dlg.exec_():
 
-                if self.topLineEdit.text():
-                    if self.topFitToCheckBox.isChecked():
-                        fntSize = 0
+                values = dlg.getValues()
+                wb = xl.workbook(self.logFile)
+                self.progressBar.setMaximum(self.inputFileList.count())
+
+                for i in range(self.inputFileList.count()):
+
+                    im = Image.open(self.inputFileList.item(i).toolTip())
+                    #im = wm.gen_watermark(im, 'Done it')
+
+                    if self.topLineEdit.text():
+                        if self.topFitToCheckBox.isChecked():
+                            fntSize = 0
+                        else:
+                            fntSize = 50
+                        topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
                     else:
-                        fntSize = 50
-                    topText = [self.topLineEdit.text(), 'arial', fntSize, self.topOpacitySpinBox.value()]
-                else:
-                    topText=None
+                        topText=None
 
-                if self.centLineEdit.text():
-                    if self.centFitToCheckBox.isChecked():
-                        fntSize = 0
+                    if self.centLineEdit.text():
+                        if self.centFitToCheckBox.isChecked():
+                            fntSize = 0
+                        else:
+                            fntSize = 50
+                        centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
                     else:
-                        fntSize = 50
-                    centText = [self.centLineEdit.text(), 'arial', fntSize, self.centOpacitySpinBox.value()]
-                else:
-                    centText=None
+                        centText=None
 
-                im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
-                wm.saveImage(im=im, savePath=self.outputFileList.item(i).toolTip())
-                xl.append_row(wb,[1,2,3,4,5,6,7,8,9,0])
-                self.progressBar.setValue(i+1)
+                    im = wm.watermark_full_beans(im, '11', printNo = '000', top=topText, cent=centText)
+                    wm.saveImage(im=im, savePath=self.outputFileList.item(i).toolTip())
+                    xl.append_row(wb,[i,self.inputFileList.item(i).toolTip(),values['Reason'],values['Requested'],
+                                      values['Recipicant'],values['Watermarked'],values['PrintedBy'],values['PaperSize'],
+                                      values['DateSent'],self.outputFileList.item(i).toolTip()])
+                    self.progressBar.setValue(i+1)
 
-            wb.save(os.path.join(os.getcwd(), 'Log.xlsx'))
-            self.showMessage('Export of images successful!', 'All images were succesfully exported to the desination folder!',
-                             QtGui.QMessageBox.Information)
-            self.progressBar.setValue(0)
+                wb.save(self.logFile)
+                self.showMessage('Export of images successful!', 'All images were succesfully exported to the desination folder!',
+                                 QtGui.QMessageBox.Information)
+
+
+            else:
+
+                pass
 
         except Exception as e:
 
             self.showMessage('Error',e,QtGui.QMessageBox.Information)
 
+        finally:
+
+            self.progressBar.setValue(0)
+            self.setStatusTip('')
 
     def showMessage(self, title, text, icon):
 
@@ -212,9 +236,16 @@ class MainGUI(QtGui.QMainWindow, Ui_MainWindow):
         result = msg.exec_()
         print(result)
 
+    def changeLogFile(self):
+
+        self.logFile = QtGui.QFileDialog.getOpenFileNameAndFilter(filter="Excel WorkBook (*.xls *.xlsx)")[0]
+        print(self.logFile)
 
     def closeEvent(self, *args, **kwargs):
         exit()
+
+
+
 
 
 if __name__ == '__main__':
