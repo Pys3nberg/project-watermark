@@ -1,0 +1,1 @@
+pyuic infoGui.ui -o infoGui.py
